@@ -1,0 +1,164 @@
+---
+title: "Women's D1 Lacrosse"
+author: "Hadley Stabnau"
+date: "Due: April 16, 2026"
+format: 
+  dashboard: 
+    nav-buttons: [github]
+    github: https://github.com/hadleystabnau10/demo_repo.git
+logo: images/logo.png
+theme: [sandstone, theme/custom.scss]
+fig-width: 10
+fig-asp: 0.3
+params:
+  year: "2022-2023"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+#| label: load-packages
+#| message: false
+
+#install.packages("DT")
+#install.packages("gt")
+
+library(tidyverse)
+library(readxl)
+library(scales)
+library(DT)
+library(gt)
+theme_set(theme_minimal(base_size = 24, base_family = "sans"))
+```
+
+
+```{r}
+#| label: load-data
+#| message: false
+
+lax_women <- read_csv("/Users/hadleystabnau/Desktop/STAT408/data/lacrosse_women_ncaa_div1_2022_2023.csv")
+```
+
+```{r}
+#| label: set-inputs
+
+time_period <- paste(params$year)
+```
+
+
+
+#  {.sidebar}
+
+This dashboard displays statistics for:
+
+|              |                     |
+|--------------|---------------------|
+| **Sport** | Women's Lacrosse |
+| **Division**     | D1  |
+| **Season**    | `{r} time_period`   |
+
+----------------------------------------------------------------------
+::: {.collapse="true"}
+
+# All
+```{r}
+#| label: all-values
+#| results: hide
+
+library(dplyr)
+library(stringr)
+
+lax_conference <- lax_women |>
+  mutate(conference = str_extract(Team, "(?<=\\().*?(?=\\))"))
+```
+
+```{r}
+library(dplyr)
+
+conference_summary <- lax_conference |>
+  group_by(conference) |>
+  summarise(
+    count = n(),
+    avg_goals_conference = mean(goals_per_game, na.rm = TRUE)
+  )
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+
+lax_conference |>
+  group_by(conference) |>
+  summarise(num_teams = n()) |>
+  ggplot(aes(x = conference, y = num_teams, fill = conference)) +
+  geom_col() +
+  labs(
+    x = "Conference",
+    y = "Number of Teams",
+    title = "Number of Teams by Conference"
+  ) +
+  theme(axis.text.x = element_blank())
+
+```
+
+
+# Offensive Stats
+
+
+```{r}
+library(dplyr)
+
+conference_summary <- lax_conference |>
+  group_by(conference) |>
+  summarise(
+    count = n(),
+    avg_goals_conference = mean(goals_per_game, na.rm = TRUE)
+  )
+```
+
+
+
+
+```{r}
+library(ggplot2)
+
+conference_summary |>
+  ggplot(aes(x = conference, y = avg_goals_conference, fill = conference)) +
+  geom_col() +
+  labs(x = "Conference", y = "Average Goals", title = "Average Goals Among Conferences") +
+  theme(axis.text.x = element_blank())
+```
+
+# Defensive Stats
+
+```{r}
+library(dplyr)
+library(knitr)
+
+top10D <- lax_conference |>
+  group_by(Team) |>
+  summarise(caused_turnovers_per_game) |>
+  arrange(caused_turnovers_per_game) |>
+  slice_head(n = 10) |>
+  mutate(
+    Rank = row_number()
+  ) |>
+  select(Rank, Team, Caused_Turnovers = caused_turnovers_per_game)
+
+kable(top10D, align = "c", caption = "Top 10 Defensive Groups")
+
+```
+
+
+# Data
+
+```{r}
+lax_conference |>
+  arrange(Team) |>
+  datatable(
+    colnames = c("Team", "Draw %", "Turnovers", "Shots on Goal", "Assists", "Caused Turnovers", "Clearing %", "Draw Controls", "Fouls", "Free Positions", "Ground Balls", "Points", "Save %", "Goals Allowed", "Goals", "Shots", "Shot %", "Win %", "Conference"),
+    options = list(dom = 'ftp', paging = TRUE)
+    )
+```
+
+
